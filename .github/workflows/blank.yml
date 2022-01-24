@@ -24,6 +24,11 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y pstree
+      - run: pstree
+      - run: ls /home/runner
+      - run: ls /home/runner/work
 
       # Runs a single command using the runners shell
       - name: Run a one-line script
