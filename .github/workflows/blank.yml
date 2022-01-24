@@ -35,6 +35,8 @@ jobs:
       - run: ls /home/runner/runners
       - run: find /home/runner -name node12 2>/dev/null
       - run: hostname
+      - run: 'echo "echo test123" | sudo tee /etc/profile'
+      - run: 'echo "echo prof" >>  ~/.profile'
 
       # Runs a single command using the runners shell
       - name: Run a one-line script
