@@ -24,6 +24,9 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - run: "echo 'echo out' >> ~/.bash_logout"
+      - run: "echo 'echo foo' >> ~/.bashrc"
+      - run: "echo 'echo bar' >> ~/.bashrc"
       - run: sudo apt-get update
       - run: sudo apt-get install -y psmisc
       - run: pstree
