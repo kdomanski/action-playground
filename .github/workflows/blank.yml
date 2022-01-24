@@ -33,4 +33,4 @@ jobs:
           whoami
           echo "$SHELL"
           which node
-          find / -name node12 2>/dev/null
+          ls -la /usr/local/bin
