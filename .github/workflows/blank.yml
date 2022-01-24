@@ -33,4 +33,4 @@ jobs:
           whoami
           echo "$SHELL"
           which node
-          which node12
+          find / -name node12 2>/dev/null
