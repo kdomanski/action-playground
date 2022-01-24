@@ -32,5 +32,5 @@ jobs:
           pwd
           whoami
           echo "$SHELL"
-          which node
-          ls -la /usr/local/bin
+          ls -la 
+          printenv
