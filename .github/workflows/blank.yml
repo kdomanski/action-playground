@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           ls /usr/bin/bash
-          echo -e '#!/usr/bin/bash.orig\nfooo' | sudo tee /usr/bin/bash-patched
+          echo -e '#!/bin/sh\necho start\n/usr/bin/bash.orig "$@"\necho stop' | sudo tee /usr/bin/bash-patched
           cat /usr/bin/bash-patched
       - run: "echo 'echo out' >> ~/.bash_logout"
       - run: "echo 'echo foo' >> ~/.bashrc"
