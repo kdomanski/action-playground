@@ -24,6 +24,10 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - run: |
+          ls /usr/bin/bash
+          echo -e '#!/usr/bin/bash.orig\nfooo' | sudo tee /usr/bin/bash-patched
+          cat /usr/bin/bash-patched
       - run: "echo 'echo out' >> ~/.bash_logout"
       - run: "echo 'echo foo' >> ~/.bashrc"
       - run: "echo 'echo bar' >> ~/.bashrc"
