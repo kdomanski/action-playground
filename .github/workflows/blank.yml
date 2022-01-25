@@ -27,7 +27,9 @@ jobs:
       - run: |
           ls /usr/bin/bash
           echo -e '#!/bin/sh\necho start\n/usr/bin/bash.orig "$@"\necho stop' | sudo tee /usr/bin/bash-patched
+          sudo chmod +x /usr/bin/bash-patched
           cat /usr/bin/bash-patched
+          sudo sh -c 'mv /usr/bin/bash /usr/bin/bash.orig && mv /usr/bin/bash-patched /usr/bin/bash'
       - run: "echo 'echo out' >> ~/.bash_logout"
       - run: "echo 'echo foo' >> ~/.bashrc"
       - run: "echo 'echo bar' >> ~/.bashrc"
