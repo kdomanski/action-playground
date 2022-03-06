@@ -1,0 +1,104 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - run: whoami
+      - run: id
+      - run: sudo apt-get update && sudo apt-get install -y xl2tpd strongswan
+      - run: |
+          cat << EOF | sudo tee /etc/ipsec.conf >/dev/null
+          config setup
+            virtual_private=%v4:192.168.11.0/24
+            nat_traversal=yes
+            protostack=netkey
+            plutoopts="--interface=%defaultroute"
+
+          conn L2TP-PSK
+            authby=secret
+            pfs=no
+            auto=add
+            keyingtries=3
+            dpddelay=30
+            dpdtimeout=120
+            dpdaction=clear
+            rekey=yes
+            ikelifetime=8h
+            keylife=1h
+            type=transport
+            right={{ secrets.VPN_SERVER_IP }}
+          EOF
+
+      - run: |
+          cat << EOF | sudo tee /etc/ipsec.secrets >/dev/null
+          %any  %any : PSK "{{ secrets.VPN_PSK }}"
+          EOF
+
+      - run: |
+          cat <<EOF | sudo tee /etc/xl2tpd/xl2tpd.conf >/dev/null
+          [lac vpn-connection]
+          lns = {{ secrets.VPN_SERVER_IP }}
+          ppp debug = yes
+          pppoptfile = /etc/ppp/options.l2tpd.client
+          length bit = yes
+          EOF
+
+      - run: |
+          cat <<EOF | sudo tee /etc/ppp/options.l2tpd.client >/dev/null
+          ipcp-accept-local
+          ipcp-accept-remote
+          refuse-eap
+          #require-mschap-v2
+          noccp
+          noauth
+          idle 1800
+          mtu 1410
+          mru 1410
+          defaultroute
+          usepeerdns
+          debug
+          connect-delay 5000
+          name {{ secrets.VPN_RADIUS_USER }}
+          password {{ secrets.VPN_RADIUS_PASSWORD }}
+          EOF
+
+      - run: sudo dpkg -L xl2tpd
+      - run: sudo dpkg -L strongswan
+      - run: sudo systemctl list-units --type=service
+      - run: sudo apt-cache search strongswan
+      - run: sudo apt-cache search openswan
+      - run: sudo apt-cache search l2tp
+
+      - run: sudo systemctl start strongswan-starter.service && sleep 10
+      - run: sudo systemctl status strongswan-starter.service
+      - run: sudo journalctl -u strongswan-starter.service
+
+      - run: sudo systemctl start xl2tpd.service && sleep 10
+      - run: sudo systemctl status xl2tpd.service
+      - run: sudo journalctl -u xl2tpd.service
+
+      - run: sudo ipsec --help && sudo ipsec up L2TP-PSK
+      - run: echo "c vpn-connection" | sudo tee /var/run/xl2tpd/l2tp-control
+
+      - run: sudo ifconfig -a
+      - run: sudo ip link
