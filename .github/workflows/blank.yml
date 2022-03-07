@@ -25,14 +25,52 @@ jobs:
       - uses: actions/checkout@v2
       - run: whoami
       - run: id
-      - run: sudo apt-get update && sudo apt-get install -y xl2tpd strongswan
+      - run: sudo apt-get update && sudo apt-get install -y xl2tpd strongswan strongswan-swanctl
+      - run: sudo apt-cache search ipsec
+      - run: |
+          cat << EOF | sudo tee /etc/swanctl.conf >/dev/null
+          connections {
+            vpn {
+              version=2
+              proposals =aes128-sha256-modp2048
+              rekey_time = 0s
+              dpd_delay = 300s
+              local_addrs = %defaultroute
+              remote_addrs = {{ secrets.VPN_SERVER_IP }}
+              vips=0.0.0.0,::
+              local {
+                auth = eap-mschapv2
+                eap_id = myuser
+              }
+              remote {
+                id = %any
+              }
+              children {
+                vpn {
+                    mode = tunnel
+                    remote_ts = 0.0.0.0/0,::/0
+                    rekey_time = 0s
+                    dpd_action = clear
+                    start_action = start
+                    esp_proposals =aes128-sha256-modp2048
+                }
+              }
+            }
+          }
+
+          secrets {
+            eap-vpn {
+                id = myuser
+                secret = mypass
+            }
+          }
+          EOF
       - run: |
           cat << EOF | sudo tee /etc/ipsec.conf >/dev/null
           config setup
             virtual_private=%v4:192.168.11.0/24
-            nat_traversal=yes
             protostack=netkey
-            plutoopts="--interface=%defaultroute"
+            plutoopts="--interface=eth0"
 
           conn L2TP-PSK
             authby=secret
@@ -46,12 +84,17 @@ jobs:
             ikelifetime=8h
             keylife=1h
             type=transport
+            left=$(hostname -i)
+            leftprotoport=17/1701
             right={{ secrets.VPN_SERVER_IP }}
+            rightprotoport=17/1701
           EOF
+
+          echo "Local IP: $(hostname -i)"
 
       - run: |
           cat << EOF | sudo tee /etc/ipsec.secrets >/dev/null
-          %any  %any : PSK "{{ secrets.VPN_PSK }}"
+          %any %any : PSK "{{ secrets.VPN_PSK }}"
           EOF
 
       - run: |
@@ -97,7 +140,12 @@ jobs:
       - run: sudo systemctl status xl2tpd.service
       - run: sudo journalctl -u xl2tpd.service
 
-      - run: sudo ipsec --help && sudo ipsec up L2TP-PSK
+      - run: sudo swanctl --load-conns
+      - run: sudo swanctl -l
+      - run: sudo swanctl -i --child vpn
+
+      # - run: ls /sbin /usr/sbin
+      # - run: sudo ipsec_auto add L2TP-PSK
       - run: echo "c vpn-connection" | sudo tee /var/run/xl2tpd/l2tp-control
 
       - run: sudo ifconfig -a
