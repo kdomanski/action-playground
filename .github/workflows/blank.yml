@@ -50,16 +50,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: |
+        sudo apt-get update
+        sudo apt-get --assume-yes --no-install-recommends install openvpn
+    - run: |
         cat << EOF > openvpn.conf
         mode p2p
         proto tcp-client
         dev tun
         ifconfig 192.168.5.1 192.168.5.2
-        remote ${{ secrets.OVPN_HOSTS }} 1194
+        remote ${{ secrets.OVPN_HOST }} 1194
 
         <secret>
         ${{ secrets.OVPN_SECRET }}
         </secret>
         cipher AES-256-CBC
         ecdh-curve secp256r1
-    - run: timeout 10 sudo openvpn --config openvpn.conf
+    - run: sudo timeout 10 openvpn --config openvpn.conf
